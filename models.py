@@ -24,7 +24,8 @@ class Patient(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
 
-    appointments_list = db.relationship('Appointment', back_populates='patient')
+    appointment_list = db.relationship('Appointment', back_populates='patient', cascade='all, delete-orphan')
+    doctors = association_proxy('appointment_list', 'doctor')
 
 class Appointment(db.Model, SerializerMixin):
     __tablename__ = "appointment_table"
@@ -55,9 +56,10 @@ class Doctor(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable = False)
-    speciality = db.Column(db.String, nullable=False)
+    specialty = db.Column(db.String, nullable=False)
 
-    appointments_list = db.relationship('Appointment', back_populates='doctor')
+    appointment_list = db.relationship('Appointment', back_populates='doctor', cascade='all, delete-orphan')
+    patients = association_proxy('appointment_list', 'patient')
 
     @validates('name')
     def validate_name(self, key: str, value: str):
