@@ -20,11 +20,17 @@ db.init_app(app)
 def index():
     return "doctor/patient"
 
+@app.get('/appointments')
+def get_appointments():
+    apps = Appointment.query.all()
+    data = [app.to_dict() for app in apps]
+    return make_response(jsonify(data), 200)
+
 
 @app.get("/doctors")
 def get_doctors():
     doctors = Doctor.query.all()
-    data = [doctor.to_dict(rules=("-appointments",)) for doctor in doctors]
+    data = [doctor.to_dict(rules=("-appointment_list",)) for doctor in doctors]
     return make_response(jsonify(data), 200)
 
 
@@ -36,12 +42,18 @@ def get_doctor_by_id(id):
     doctor_dict = doctor.to_dict()
     return make_response(jsonify(doctor_dict), 200)
 
+@app.get('/patients')
+def get_patients():
+    patients = Patient.query.all()
+    data = [p.to_dict(rules=('-appointment_list',)) for p in patients]
+    return make_response(jsonify(data, 200))
+
 
 @app.get("/patients/<int:id>")
-def get_patients(id):
+def get_patient_by_id(id):
     patient = db.session.get(Patient, id)
-    doctors = [d.to_dict(rules=("-appointments",)) for d in patient.doctors]
-    patient_dict = patient.to_dict(rules=("-appointments",))
+    doctors = [d.to_dict(rules=("-appointment_list",)) for d in patient.doctors]
+    patient_dict = patient.to_dict(rules=("-appointment_list",))
     patient_dict["doctors"] = doctors
     return make_response(jsonify(patient_dict), 200)
 
@@ -57,6 +69,18 @@ def post_doctor():
         return make_response(jsonify(doc.to_dict()), 201)
     except ValueError:
         return make_response(jsonify({"error": "that's a quack!"}), 405)
+    
+@app.post('/patients')
+def post_patient():
+    data = request.json
+    
+    try:
+        patient = Patient(name=data['name'])
+        db.session.add(patient)
+        db.session.commit()
+        return make_response(jsonify(patient.to_dict()), 201)
+    except ValueError:
+        return make_response(jsonify({'error': 'Yoo aa Wong!'}))
 
 
 @app.patch("/patients/<int:id>")
@@ -64,7 +88,7 @@ def patch_patients(id):
     data = request.get_json()
     patient = Patient.query.filter(Patient.id == id).first()
     if not patient:
-        make_response(jsonify({"error": "no such patient"}), 404)
+        return make_response(jsonify({"error": "no such patient"}), 404)
     try:
         for key in data:
             setattr(patient, key, data[key])
@@ -73,7 +97,39 @@ def patch_patients(id):
         return make_response(jsonify(patient.to_dict()), 201)
     except:
         return make_response(jsonify({"error": "could not update patient"}), 405)
-
+    
+@app.patch('/doctors/<int:id>')
+def patch_doctors(id):
+    data = request.json
+    doctor = db.session.get(Doctor, id)
+    
+    if not doctor:
+        return make_response(jsonify({"error": "no doctor"}), 404)
+    
+    try:
+        for key in data:
+            setattr(doctor, key, data[key])
+        db.session.add(doctor)
+        db.session.commit()
+        return make_response(jsonify(doctor.to_dict()), 201)
+    except:
+        return make_response(jsonify({"error": "Shumting wong, could not update"}), 405)
+    
+@app.patch('/appointments/<int:id>')
+def patch_appointment(id):
+    data = request.json
+    appointment = db.session.get(Appointment, id)
+    
+    if not appointment:
+        return make_response(jsonify({"error": "no appointment"}), 404)
+    try:
+        for key in data:
+            setattr(appointment, key, data[key])
+        db.session.add(appointment)
+        db.session.commit()
+        return make_response(jsonify(appointment.to_dict()), 201)
+    except:
+        return make_response(jsonify({"error": "Shumting wong, could not update"}), 405)
 
 @app.post("/appointments")
 def post_appointment():
@@ -91,7 +147,37 @@ def post_appointment():
         )
     except Exception as e:
         return make_response(jsonify({"error": str(e)}), 405)
+    
+@app.delete('/appointments')
+def delete_appointment(id:int):
+    appointment = db.session.get(Appointment, id)
+    if not appointment:
+        return make_response(jsonify({"error": 'Shumting Wong - no appointment'}), 404)
+    db.session.delete(appointment)
+    db.session.commit()
+    return make_response(jsonify({}), 204)
 
+@app.delete('/doctors')
+def delete_doctor(id:int):
+    doctor = Doctor.query.filter(Doctor.id == id).first()
+    
+    if not doctor:
+        return make_response(jsonify({"error": 'Shumting Wong - no appointment'}), 404)
+    
+    db.session.delete(doctor)
+    db.session.commit()
+    return make_response(jsonify({}), 204)
+
+@app.delete('/patients')
+def delete_patient(id:int):
+    patient = db.session.get(Patient, id)
+    
+    if not patient:
+        return make_response(jsonify({"error": 'Shumting wong, no patient'}), 404)
+    
+    db.session.delete(patient)
+    db.session.commit()
+    return make_response(jsonify({}), 204)
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

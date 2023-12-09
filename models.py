@@ -3,8 +3,8 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
-import string, datetime
 from datetime import datetime
+import string, datetime
 import re
 
 
@@ -30,7 +30,7 @@ class Patient(db.Model, SerializerMixin):
 class Appointment(db.Model, SerializerMixin):
     __tablename__ = "appointment_table"
 
-    serailize_rules = ('-patient.appointment_list', '-doctor.appointment_list')
+    serialize_rules = ('-patient.appointment_list', '-doctor.appointment_list')
 
     id = db.Column(db.Integer, primary_key=True)
     day = db.Column(db.String, nullable=False)
